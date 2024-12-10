@@ -1,42 +1,79 @@
-version: '3.8'
-
 services:
   frontend:
     build: 
       context: .
       dockerfile: Dockerfile
+    container_name: ${DOCKER_FRONTEND_SERVICE}
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     volumes:
       - .:/app
-      - frontend_node_modules:/app/node_modules
-      - frontend_next_cache:/app/.next
+      - /app/node_modules
+      - /app/.next
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - NODE_ENV=development
-      - NEXT_TELEMETRY_DISABLED=1
-      - WATCHPACK_POLLING=true
-      - CHOKIDAR_USEPOLLING=true
+      - NODE_ENV=${NODE_ENV}
+      - NEXT_TELEMETRY_DISABLED=${NEXT_TELEMETRY_DISABLED}
+      - WATCHPACK_POLLING=${WATCHPACK_POLLING}
+      - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING}
+      - HOST=${API_HOST}
+      - DOCKER_HOST=${DOCKER_HOST}
+      - DOCKER_TRADE_MANAGER_SERVICE=${DOCKER_TRADE_MANAGER_SERVICE}
+      - DOCKER_MARKET_ANALYSIS_SERVICE=${DOCKER_MARKET_ANALYSIS_SERVICE}
+      - DOCKER_TRADE_DISCOVERY_SERVICE=${DOCKER_TRADE_DISCOVERY_SERVICE}
+      - API_BASE_URL=${API_BASE_URL}
+      - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+      - NEXT_PUBLIC_API_HOST=${NEXT_PUBLIC_API_HOST}
+    command: npm run dev -- -H ${API_HOST}
     networks:
       - trading_system_net
 
   market_analysis:
-    build: ../market-analysis
+    build: ${MARKET_ANALYSIS_PATH}
+    container_name: ${DOCKER_MARKET_ANALYSIS_SERVICE}
     ports:
-      - "8000:8000"
+      - "${MARKET_ANALYSIS_PORT}:${MARKET_ANALYSIS_PORT}"
     environment:
-      - API_PORT=8000
-      - API_HOST=0.0.0.0
-      - PYTHONPATH=/app
+      - API_PORT=${MARKET_ANALYSIS_PORT}
+      - API_HOST=${API_HOST}
+      - PYTHONPATH=${PYTHONPATH}
     volumes:
-      - ../market-analysis:/app
-    command: uvicorn src.api.app:app --host 0.0.0.0 --port 8000 --reload
+      - ${MARKET_ANALYSIS_PATH}:/app
+    command: uvicorn src.api.app:app --host ${API_HOST} --port ${MARKET_ANALYSIS_PORT} --reload
+    networks:
+      - trading_system_net
+
+  trade_manager:
+    container_name: ${DOCKER_TRADE_MANAGER_SERVICE}
+    build: ${TRADE_MANAGER_PATH}
+    ports:
+      - "${TRADE_MANAGER_PORT}:${TRADE_MANAGER_PORT}"
+    environment:
+      - API_PORT=${TRADE_MANAGER_PORT}
+      - API_HOST=${API_HOST}
+      - PYTHONPATH=${PYTHONPATH}
+    volumes:
+      - ${TRADE_MANAGER_PATH}:/app
+    command: uvicorn src.api.main:app --host ${API_HOST} --port ${TRADE_MANAGER_PORT} --reload
+    networks:
+      - trading_system_net
+
+  trade_discovery:
+    container_name: ${DOCKER_TRADE_DISCOVERY_SERVICE}
+    build: ${TRADE_DISCOVERY_PATH}
+    ports:
+      - "${TRADE_DISCOVERY_PORT}:${TRADE_DISCOVERY_PORT}"
+    environment:
+      - API_PORT=${TRADE_DISCOVERY_PORT}
+      - API_HOST=${API_HOST}
+      - PYTHONPATH=${PYTHONPATH}
+    volumes:
+      - ${TRADE_DISCOVERY_PATH}:/app
+    command: uvicorn src.api.app:app --host ${API_HOST} --port ${TRADE_DISCOVERY_PORT} --reload
     networks:
       - trading_system_net
 
 networks:
   trading_system_net:
+    name: ${DOCKER_NETWORK_NAME}
     driver: bridge
-
-volumes:
-  frontend_node_modules:
-  frontend_next_cache:

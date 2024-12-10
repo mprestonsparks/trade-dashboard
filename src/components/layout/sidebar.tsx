@@ -26,7 +26,9 @@ export function Sidebar({ className }: SidebarProps) {
             <Button 
               variant={pathname === "/" ? "secondary" : "ghost"}
               className="w-full justify-start"
-              onClick={() => router.push("/")}
+              onClick={() => {
+                router.push("/")
+              }}
             >
               <LayoutDashboard className="mr-2 h-4 w-4" />
               API Status
@@ -34,7 +36,9 @@ export function Sidebar({ className }: SidebarProps) {
             <Button 
               variant={pathname === "/market-analysis" ? "secondary" : "ghost"}
               className="w-full justify-start"
-              onClick={() => router.push("/market-analysis")}
+              onClick={() => {
+                router.push("/market-analysis")
+              }}
             >
               <LineChart className="mr-2 h-4 w-4" />
               Market Analysis
@@ -42,7 +46,9 @@ export function Sidebar({ className }: SidebarProps) {
             <Button 
               variant={pathname === "/trade-management" ? "secondary" : "ghost"}
               className="w-full justify-start"
-              onClick={() => router.push("/trade-management")}
+              onClick={() => {
+                router.push("/trade-management")
+              }}
             >
               <Wallet className="mr-2 h-4 w-4" />
               Trade Management
@@ -50,7 +56,9 @@ export function Sidebar({ className }: SidebarProps) {
             <Button 
               variant={pathname === "/trade-discovery" ? "secondary" : "ghost"}
               className="w-full justify-start"
-              onClick={() => router.push("/trade-discovery")}
+              onClick={() => {
+                router.push("/trade-discovery")
+              }}
             >
               <TrendingUp className="mr-2 h-4 w-4" />
               Trade Discovery

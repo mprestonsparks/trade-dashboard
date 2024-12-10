@@ -3,8 +3,16 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Badge } from '../ui/badge'
+import { Button } from '../ui/button'
+import { RefreshCw, Activity } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TimeDisplay } from "../ui/time-display"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface HealthStatus {
   status: string
@@ -18,22 +26,61 @@ export function TradeManagerStatus() {
     message: 'Checking status...',
     timestamp: new Date().toISOString()
   })
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isRestarting, setIsRestarting] = useState(false)
+
+  const checkHealth = async () => {
+    try {
+      setIsRefreshing(true)
+      const response = await fetch('http://localhost:8082/health')
+      const data = await response.json()
+      setHealthStatus(data)
+    } catch (error) {
+      setHealthStatus({
+        status: 'error',
+        message: 'Failed to connect to service',
+        timestamp: new Date().toISOString()
+      })
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
+
+  const handleRestart = async () => {
+    try {
+      setIsRestarting(true)
+      const response = await fetch('/api/docker/restart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          containerId: process.env.NEXT_PUBLIC_DOCKER_TRADE_MANAGER_SERVICE
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ details: 'Network error occurred' }));
+        throw new Error(errorData.details || 'Failed to restart service');
+      }
+      
+      // Wait a bit before checking health to allow the service to start
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      await checkHealth();
+    } catch (error) {
+      console.error('Failed to restart container:', error);
+      setHealthStatus(prev => ({
+        ...prev,
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Failed to restart service',
+        timestamp: new Date().toISOString()
+      }));
+    } finally {
+      setIsRestarting(false)
+    }
+  }
 
   useEffect(() => {
-    const checkHealth = async () => {
-      try {
-        const response = await fetch('http://localhost:8082/health')
-        const data = await response.json()
-        setHealthStatus(data)
-      } catch (error) {
-        setHealthStatus({
-          status: 'error',
-          message: 'Failed to connect to service',
-          timestamp: new Date().toISOString()
-        })
-      }
-    }
-
     checkHealth()
     const interval = setInterval(checkHealth, 30000)
     return () => clearInterval(interval)
@@ -45,6 +92,44 @@ export function TradeManagerStatus() {
         <div>
           <CardTitle className="text-sm font-medium">Trade Manager</CardTitle>
           <CardDescription className="text-xs">Service Status</CardDescription>
+        </div>
+        <div className="flex gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={checkHealth}
+                  disabled={isRefreshing}
+                >
+                  <RefreshCw className={cn("h-4 w-4", { "animate-spin": isRefreshing })} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Refresh Status</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handleRestart}
+                  disabled={isRestarting}
+                >
+                  <Activity className={cn("h-4 w-4", { "animate-spin": isRestarting })} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Restart Service</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </CardHeader>
       <CardContent>
