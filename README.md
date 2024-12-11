@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Trade Dashboard
 
-## Getting Started
+A Next.js application for visualizing and managing trade data. This is part of a microservices architecture that includes:
+- Frontend Dashboard (port 3000)
+- Trade Manager Service (port 8082)
+- Market Analysis Service (port 8000)
+- Trade Discovery Service (port 8084)
 
-First, run the development server:
+## Prerequisites
 
+1. Docker and Docker Compose installed
+2. Copy `.env.example` to `.env` and adjust values if needed:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Docker Deployment
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The application runs as a set of microservices using Docker Compose:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Docker Commands
 
-## Learn More
+### Start/Stop Services
+```bash
+# Build and start all services
+docker compose up --build
+```
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# To run in detached mode
+docker compose up --build -d
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+# To stop all services
+docker compose down
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Manage Individual Containers
+```bash
+# Kill a specific container
+docker kill <container_name>
+```
 
-## Deploy on Vercel
+```bash
+# Kill all running containers
+docker kill $(docker ps -q)
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+# Restart a specific container
+docker restart <container_name>
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+# View running containers
+docker ps
+```
+
+### Refresh/Rebuild Services
+```bash
+# Rebuild and restart all services
+docker compose down && docker compose up --build -d
+```
+
+```bash
+# Rebuild and restart a specific service
+docker compose up --build -d <service_name>
+```
+
+The services will be available at:
+- Frontend: http://localhost:3000
+- Trade Manager: http://localhost:8082
+- Market Analysis: http://localhost:8000
+- Trade Discovery: http://localhost:8084
+
+## Local Development
+
+For local development without Docker:
+
+```bash
+npm install
+npm run dev
+```
+
+Note: Running only the frontend locally will require the other services to be running separately.
