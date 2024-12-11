@@ -2,9 +2,9 @@
 
 A Next.js application for visualizing and managing trade data. This is part of a microservices architecture that includes:
 - Frontend Dashboard (port 3000)
-- Trade Manager Service (port 8082)
-- Market Analysis Service (port 8000)
-- Trade Discovery Service (port 8084)
+- [Trade Manager Service](https://github.com/mprestonsparks/trade-manager) (port 8082)
+- [Market Analysis Service](https://github.com/mprestonsparks/market-analysis) (port 8000)
+- [Trade Discovery Service](https://github.com/mprestonsparks/trade-discovery) (port 8084)
 
 ## Prerequisites
 
@@ -12,7 +12,6 @@ A Next.js application for visualizing and managing trade data. This is part of a
 2. Copy `.env.example` to `.env` and adjust values if needed:
 ```bash
 cp .env.example .env
-```
 
 ## Docker Deployment
 
