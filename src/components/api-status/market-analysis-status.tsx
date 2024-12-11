@@ -91,49 +91,114 @@ export function MarketAnalysisStatus() {
   })
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isRestarting, setIsRestarting] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   const checkHealth = async () => {
+    console.log('[MarketAnalysisStatus] Checking health...')
     try {
       setIsRefreshing(true)
+      console.log('[MarketAnalysisStatus] Fetching health from http://localhost:8000/health')
       const response = await fetch('http://localhost:8000/health')
+      console.log('[MarketAnalysisStatus] Health response status:', response.status)
+      
       const data = await response.json()
+      console.log('[MarketAnalysisStatus] Health data:', data)
       setHealthStatus(data)
     } catch (error) {
-      setHealthStatus(prev => ({
-        ...prev,
-        status: 'error',
-        timestamp: new Date().toISOString()
-      }))
+      console.error('[MarketAnalysisStatus] Health check failed:', error)
+      setHealthStatus(prev => {
+        const newStatus = {
+          ...prev,
+          status: 'error',
+          timestamp: new Date().toISOString()
+        }
+        console.log('[MarketAnalysisStatus] Updated health status:', newStatus)
+        return newStatus
+      })
     } finally {
+      console.log('[MarketAnalysisStatus] Health check completed')
       setIsRefreshing(false)
     }
   }
 
+  useEffect(() => {
+    console.log('[MarketAnalysisStatus] Component mounted, initializing...')
+    setMounted(true)
+    
+    // Test if the health endpoint is reachable
+    fetch('http://localhost:8000/health', { method: 'HEAD' })
+      .then(() => console.log('[MarketAnalysisStatus] Health endpoint is reachable'))
+      .catch(err => console.error('[MarketAnalysisStatus] Health endpoint is NOT reachable:', err))
+
+    checkHealth()
+    console.log('[MarketAnalysisStatus] Setting up health check interval (30s)')
+    const interval = setInterval(checkHealth, 30000)
+    return () => {
+      console.log('[MarketAnalysisStatus] Cleaning up health check interval')
+      clearInterval(interval)
+    }
+  }, [])
+
   const handleRestart = async () => {
+    if (!mounted) return;
+    
     try {
-      setIsRestarting(true)
-      await fetch('http://localhost:8000/docker/restart', {
+      console.log('Restart button clicked');
+      setIsRestarting(true);
+      
+      const serviceId = process.env.NEXT_PUBLIC_DOCKER_MARKET_ANALYSIS_SERVICE;
+      console.log('Service ID:', serviceId);
+      
+      const response = await fetch('/api/docker/restart', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          containerId: 'trade-dashboard-market_analysis-1'
+          containerId: serviceId
         })
       });
-      checkHealth();
+      
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error response:', errorData);
+        throw new Error(errorData.details || 'Failed to restart service');
+      }
+      
+      const responseData = await response.json();
+      console.log('Success response:', responseData);
+      
+      // Wait a bit before checking health to allow the service to start
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      await checkHealth();
     } catch (error) {
       console.error('Failed to restart container:', error);
+      setHealthStatus(prev => ({
+        ...prev,
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Failed to restart service',
+        timestamp: new Date().toISOString()
+      }));
     } finally {
       setIsRestarting(false)
     }
   }
 
-  useEffect(() => {
-    checkHealth()
-    const interval = setInterval(checkHealth, 30000)
-    return () => clearInterval(interval)
-  }, [])
+  if (!mounted) {
+    console.log('[MarketAnalysisStatus] Component not yet mounted, showing loading state')
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <div>
+            <CardTitle className="text-sm font-medium">Market Analysis</CardTitle>
+            <CardDescription className="text-xs">Loading...</CardDescription>
+          </div>
+        </CardHeader>
+      </Card>
+    )
+  }
 
   return (
     <Card>
@@ -168,7 +233,12 @@ export function MarketAnalysisStatus() {
                   variant="outline"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={handleRestart}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Button clicked directly');
+                    handleRestart();
+                  }}
                   disabled={isRestarting}
                 >
                   <Activity className={cn("h-4 w-4", { "animate-spin": isRestarting })} />
@@ -223,45 +293,21 @@ export function MarketAnalysisStatus() {
             </div>
           </div>
 
-          <Separator />
-
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Database className="h-4 w-4" />
-              <span>Dependencies</span>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Dependencies</span>
             </div>
-            <div className="grid gap-2">
-              <div className="flex items-center justify-between">
-                <DependencyBadge name="Redis" status={healthStatus.dependencies.redis} />
-                {healthStatus.dependencies.redis.error && (
-                  <span className="text-xs text-destructive ml-2" title={healthStatus.dependencies.redis.error}>
-                    Error
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center justify-between">
-                <DependencyBadge name="RabbitMQ" status={healthStatus.dependencies.rabbitmq} />
-                {healthStatus.dependencies.rabbitmq.error && (
-                  <span className="text-xs text-destructive ml-2" title={healthStatus.dependencies.rabbitmq.error}>
-                    Error
-                  </span>
-                )}
-              </div>
+            <div className="flex flex-col gap-1">
+              <DependencyBadge name="Redis" status={healthStatus.dependencies.redis} />
+              <DependencyBadge name="RabbitMQ" status={healthStatus.dependencies.rabbitmq} />
             </div>
           </div>
 
-          <Separator />
-
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Activity className="h-4 w-4" />
-              <span>Metrics</span>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">System Metrics</span>
             </div>
-            <div className="grid gap-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Uptime</span>
-                <span>{formatDuration(healthStatus.metrics.uptime_seconds)}</span>
-              </div>
+            <div className="grid grid-cols-2 gap-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">CPU Usage</span>
                 <span>{healthStatus.metrics.cpu_usage.toFixed(1)}%</span>
@@ -271,12 +317,12 @@ export function MarketAnalysisStatus() {
                 <span>{healthStatus.metrics.memory_usage.toFixed(1)}%</span>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Requests</span>
-                <span>{healthStatus.metrics.request_count}</span>
+                <span className="text-muted-foreground">Uptime</span>
+                <span>{formatDuration(healthStatus.metrics.uptime_seconds)}</span>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Avg Response</span>
-                <span>{healthStatus.metrics.average_response_time_ms.toFixed(1)}ms</span>
+                <span className="text-muted-foreground">Requests</span>
+                <span>{healthStatus.metrics.request_count}</span>
               </div>
             </div>
           </div>
