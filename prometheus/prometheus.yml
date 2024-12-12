@@ -1,0 +1,20 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'market_analysis'
+    static_configs:
+      - targets: ['${DOCKER_MARKET_ANALYSIS_SERVICE}:${MARKET_ANALYSIS_PORT}']
+
+  - job_name: 'trade_manager'
+    static_configs:
+      - targets: ['${DOCKER_TRADE_MANAGER_SERVICE}:${TRADE_MANAGER_PORT}']
+
+  - job_name: 'trade_discovery'
+    static_configs:
+      - targets: ['${DOCKER_TRADE_DISCOVERY_SERVICE}:${TRADE_DISCOVERY_PORT}']

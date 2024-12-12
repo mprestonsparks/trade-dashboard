@@ -73,7 +73,43 @@ services:
     networks:
       - trading_system_net
 
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ${DOCKER_PROMETHEUS_SERVICE}
+    ports:
+      - "${PROMETHEUS_PORT}:9090"
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - trading_system_net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ${DOCKER_GRAFANA_SERVICE}
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    networks:
+      - trading_system_net
+
 networks:
   trading_system_net:
     name: ${DOCKER_NETWORK_NAME}
     driver: bridge
+
+volumes:
+  prometheus_data:
+  grafana_data:

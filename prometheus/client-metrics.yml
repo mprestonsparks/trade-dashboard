@@ -1,0 +1,9 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'nextjs_client'
+    static_configs:
+      - targets: ['${DOCKER_FRONTEND_SERVICE}:${FRONTEND_PORT}']
+    metrics_path: '/api/metrics'  # We'll create this API route in Next.js
