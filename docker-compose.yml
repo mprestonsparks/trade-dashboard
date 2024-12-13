@@ -37,11 +37,14 @@ services:
       - API_PORT=${MARKET_ANALYSIS_PORT}
       - API_HOST=${API_HOST}
       - PYTHONPATH=${PYTHONPATH}
+      - REDIS_HOST=redis
     volumes:
       - ${MARKET_ANALYSIS_PATH}:/app
     command: uvicorn src.api.app:app --host ${API_HOST} --port ${MARKET_ANALYSIS_PORT} --reload
     networks:
       - trading_system_net
+    depends_on:
+      - redis
 
   trade_manager:
     container_name: ${DOCKER_TRADE_MANAGER_SERVICE}
@@ -96,14 +99,29 @@ services:
       - "${GRAFANA_PORT}:3000"
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/provisioning/dashboards/market_analysis.json
       - GF_USERS_ALLOW_SIGN_UP=false
     depends_on:
       - prometheus
     networks:
       - trading_system_net
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: trading-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - trading_system_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 networks:
   trading_system_net:
