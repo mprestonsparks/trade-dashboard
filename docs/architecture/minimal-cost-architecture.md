@@ -139,16 +139,19 @@ graph TD
 ## Maintenance
 
 ### Daily Operations
-- Monitor system health
-- Check error logs
-- Verify service status
+- Monitor system health via Grafana dashboards
+- Check error logs through centralized logging
+- Verify service status using health check endpoints
+- Track trading performance metrics
 
 ### Weekly Tasks
-- Review metrics
-- Backup critical data
-- Update dependencies
+- Review system metrics and trading performance
+- Backup critical data and configurations
+- Update dependencies (following semantic versioning)
+- Analyze trading strategy effectiveness
 
 ### Monthly Tasks
-- Review usage metrics
-- Check for security updates
-- Optimize configurations
+- Review usage metrics against free tier limits
+- Check for security updates and apply patches
+- Optimize configurations based on actual usage
+- Evaluate strategy performance and make adjustments
